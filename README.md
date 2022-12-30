@@ -6,11 +6,13 @@ kind of support ticket help something application
 ### supp-server
 requires java and maven
 
-build: `mvn -f supp-server clean install`
+build: `mvn clean install`
 
-run: `java -jar supp-server/target/supp-server-0.0.1-SNAPSHOT.jar`
+run: `java -jar target/supp-server-0.0.1-SNAPSHOT.jar`
 
 ### supp-user
 requires node.js
 
-run: `node supp-user/index.js`
+install packages: `npm install`
+
+run: `node index.js`
