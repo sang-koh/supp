@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="robots" content="noindex">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>users - supp user</title>
+		<link rel="stylesheet" href="/css/style.css">
+	</head>
+	<body>
+		<div id="app" style="display: none;">
+			<header class="header">
+				<div class="header__inner max-width-container">
+					<div class="header__title">supp user</div>
+					<div class="header__hello" id="hello"></div>
+					<nav class="header__nav">
+						<ul>
+							<li id="home"><a href="/">home</a></li>
+							<li id="users"><a href="/user/">users</a></li>
+							<li>
+								<a href="/login/" id="login">login</a>
+								<a href="/logout/" id="logout">logout</a>
+							</li>
+						</ul>
+					</nav>
+				</div>
+			</header>
+			
+			<main class="main">
+				<div class="main__inner max-width-container">
+					<h1>users</h1>
+					<div class="user-list" id="user-list"></div>
+				</div>
+			</main>
+			
+			<footer class="footer">
+				<div class="footer__inner max-width-container">
+					<p>&copy; 2022 sanko</p>
+				</div>
+			</footer>
+		</div>
+		<script src="/js/login.js"></script>
+		<script>
+			{
+				window.addEventListener("login", onLogin);
+				async function onLogin(event) {
+					window.removeEventListener("login", onLogin);
+					if (!event.detail.login) {
+						window.location.href = "/login/";
+						return;
+					}
+					
+					fetchUser();
+					function fetchUser() {
+						fetch(
+							"http://localhost:3000/user/list/",
+							{
+								credentials: "include",
+								method: "GET",
+								headers: {
+									"Content-Type": "application/json",
+								},
+							}
+						)
+							.then(res => res.json())
+							.then(json => {
+								const users = document.querySelector("#user-list");
+								users.innerHTML = null;
+								
+								if (json.result === "fail") {
+									users.innerHTML = "<p>failed to fetch users</p>";
+									return;
+								}
+								
+								const ul = document.createElement("ul");
+								json.users.map(user => {
+									const li = document.createElement("li");
+									const span = document.createElement("span");
+									const button = document.createElement("button");
+									span.appendChild(document.createTextNode(user.username));
+									if (user.support) {
+										li.classList.add("user-list__support");
+										button.textContent = "remove";
+										button.addEventListener("click", setSupport.bind(null, user.id, 0));
+									} else {
+										button.textContent = "add";
+										button.addEventListener("click", setSupport.bind(null, user.id, 1));
+									}
+									li.appendChild(span);
+									li.appendChild(button);
+									ul.appendChild(li);
+								});
+								users.appendChild(ul);
+							})
+							.catch(error => {
+								const users = document.querySelector("#user-list");
+								users.innerHTML = "<p>failed to fetch users</p>";
+							});
+					}
+					
+					async function setSupport(userId, support, event) {
+						let res = await fetch(
+							"http://localhost:3000/user/support/",
+							{
+								credentials: "include",
+								method: "PUT",
+								headers: {
+									"Accept": "application/json",
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({
+									userId,
+									support,
+								}),
+							}
+						);
+						fetchUser();
+					}
+					
+					window.dispatchEvent(new Event("show"));
+				}
+			}
+		</script>
+	</body>
+</html>

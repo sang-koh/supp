@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sanko.suppserver.user.UserDao">
+	<insert id="createLogin" useGeneratedKeys="true" keyProperty="returner.id" keyColumn="id">
+		INSERT INTO users (username, password) 
+		VALUES (#{username}, #{password})
+	</insert>
+	
+	<select id="getUser" resultType="hashmap">
+		SELECT id, password, support FROM users WHERE username = #{username} LIMIT 1
+	</select>
+	
+	<select id="listUsers" resultType="hashmap">
+		SELECT id, username, support FROM users;
+	</select>
+	
+	<select id="checkSupport" resultType="int">
+		SELECT id FROM users WHERE id = #{userId} AND support IS NOT NULL LIMIT 1
+	</select>
+	
+	<insert id="setSupport">
+		UPDATE users SET support = 1 WHERE id = #{userId}
+	</insert>
+	
+	<insert id="unsetSupport">
+		UPDATE users SET support = NULL WHERE id = #{userId}
+	</insert>
+</mapper>

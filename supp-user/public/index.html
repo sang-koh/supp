@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="robots" content="noindex">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>supp user</title>
+		<link rel="stylesheet" href="/css/style.css">
+	</head>
+	<body>
+		<div id="app" style="display: none;">
+			<header class="header">
+				<div class="header__inner max-width-container">
+					<div class="header__title">supp user</div>
+					<div class="header__hello" id="hello"></div>
+					<nav class="header__nav">
+						<ul>
+							<li id="home"><a href="/">home</a></li>
+							<li id="users"><a href="/user/">users</a></li>
+							<li>
+								<a href="/login/" id="login">login</a>
+								<a href="/logout/" id="logout">logout</a>
+							</li>
+						</ul>
+					</nav>
+				</div>
+			</header>
+			
+			<main class="main">
+				<div class="main__inner max-width-container">
+					<h1>supp user</h1>
+					<p><a href="/new/" class="button">new ticket</a></p>
+					<h2>tickets</h2>
+					<div class="tickets" id="tickets"></div>
+				</div>
+			</main>
+			
+			<footer class="footer">
+				<div class="footer__inner max-width-container">
+					<p>&copy; 2022 sanko</p>
+				</div>
+			</footer>
+		</div>
+		<script src="/js/login.js"></script>
+		<script>
+			{
+				window.addEventListener("login", onLogin);
+				async function onLogin(event) {
+					window.removeEventListener("login", onLogin);
+					if (!event.detail.login) {
+						window.location.href = "/login/";
+						return;
+					}
+					
+					let support = event.detail.support;
+					
+					fetchTickets();
+					function fetchTickets() {
+						fetch(
+							"http://localhost:3000/ticket/list/",
+							{
+								credentials: "include",
+								method: "GET",
+								headers: {
+									"Content-Type": "application/json",
+								},
+							}
+						)
+							.then(res => res.json())
+							.then(json => {
+								const tickets = document.querySelector("#tickets");
+								
+								if (json.result === "fail") {
+									tickets.innerHTML = "<p>failed to fetch tickets</p>";
+									return;
+								}
+								
+								let string = "<ul>";
+								json.tickets.map(ticket => {
+									if (support) {
+										string += "<li class=\"tickets__ticket" + (ticket.closed? " tickets__ticket--closed": "") + "\"><p><a href=\"/ticket/?id=" + ticket.id + "\">" + ticket.username + ": " + ticket.title + "<span class=\"created\">" + ticket.lastUser + " @ " + ticket.lastTime + "</span></a></p></li>";
+									} else {
+										string += "<li class=\"tickets__ticket" + (ticket.closed? " tickets__ticket--closed": "") + "\"><p><a href=\"/ticket/?id=" + ticket.id + "\">" + ticket.title + "<span class=\"created\">" + ticket.lastUser + " @ " + ticket.lastTime + "</span></a></p></li>";
+									}
+								});
+								string += "</ul>";
+								tickets.innerHTML = string;
+							});
+					}
+					
+					if (support) checkTickets();
+					function checkTickets() {
+						fetch(
+							"http://localhost:3000/poll/ticket/",
+							{
+								credentials: "include",
+								method: "GET",
+								headers: {
+									"Content-Type": "application/json",
+								},
+							}
+						)
+							.then(res => res.json())
+							.then(json => {
+								if (json.result === "success") fetchTickets();
+								checkTickets();
+							});
+					}
+					
+					window.dispatchEvent(new Event("show"));
+				}
+			}
+		</script>
+	</body>
+</html>

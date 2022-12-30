@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="robots" content="noindex">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>ticket - supp user</title>
+		<link rel="stylesheet" href="/css/style.css">
+	</head>
+	<body>
+		<div id="app" style="display: none;">
+			<header class="header">
+				<div class="header__inner max-width-container">
+					<div class="header__title">supp user</div>
+					<div class="header__hello" id="hello"></div>
+					<nav class="header__nav">
+						<ul>
+							<li id="home"><a href="/">home</a></li>
+							<li id="users"><a href="/user/">users</a></li>
+							<li>
+								<a href="/login/" id="login">login</a>
+								<a href="/logout/" id="logout">logout</a>
+							</li>
+						</ul>
+					</nav>
+				</div>
+			</header>
+			
+			<main class="main">
+				<div class="main__inner max-width-container">
+					<h1 id="title">ticket</h1>
+					<p><button id="close-ticket">close ticket</button></p>
+					<p id="message"></p>
+					<div class="contents" id="contents"></div>
+					<form class="content-form" id="add">
+						<p>
+							<label for="content">reply</label>
+							<textarea name="content" id="content"></textarea>
+						</p>
+						<p>
+							<input type="submit" value="submit">
+						</p>
+					</form>
+				</div>
+			</main>
+			
+			<footer class="footer">
+				<div class="footer__inner max-width-container">
+					<p>&copy; 2022 sanko</p>
+				</div>
+			</footer>
+		</div>
+		<script src="/js/login.js"></script>
+		<script>
+			{
+				window.addEventListener("login", onLogin);
+				async function onLogin(event) {
+					window.removeEventListener("login", onLogin);
+					if (!event.detail.login) {
+						window.location.href = "/login/";
+						return;
+					}
+					
+					const closeTicket = document.querySelector("#close-ticket");
+					if (!event.detail.support) closeTicket.remove();
+					
+					let params = new URLSearchParams(window.location.search);
+					let ticketId = parseInt(params.get("id"), 10);
+					
+					fetchContents();
+					function fetchContents() {
+						fetch(
+							"http://localhost:3000/ticket/content/?ticketId=" + ticketId,
+							{
+								credentials: "include",
+								method: "GET",
+								headers: {
+									"Content-Type": "application/json",
+								},
+							}
+						)
+							.then(res => res.json())
+							.then(json => {
+								const contents = document.querySelector("#contents");
+								
+								if (json.result === "fail") {
+									contents.innerHTML = "<p>failed to fetch contents</p>";
+									return;
+								}
+								
+								if (json.closed) {
+									document.querySelector("#message").textContent = "this ticket is closed";
+									closeTicket.style.display = "none";
+								} else {
+									document.querySelector("#message").textContent = null;
+									closeTicket.style.display = null;
+								}
+								
+								document.querySelector("#title").textContent = json.title;
+								document.title = json.title + " - supp user";
+								
+								let string = "<ul>";
+								json.contents.map(content => {
+									if (content.support) {
+										string += "<li class=\"contents__support\"><p>" + content.username + "<span class=\"created\">" + content.created + "</span></p><p>" + content.content.replaceAll("\n", "<br>") + "</p></li>";
+									} else {
+										string += "<li><p>" + content.username + "<span class=\"created\">" + content.created + "</span></p><p>" + content.content.replaceAll("\n", "<br>") + "</p></li>";
+									}
+								});
+								string += "</ul>";
+								contents.innerHTML = string;
+								window.scrollTo({
+									top: document.body.scrollHeight,
+									behavior: "smooth",
+								});
+							})
+							.catch(error => {
+								const contents = document.querySelector("#contents");
+								contents.innerHTML = "<p>failed to fetch contents</p>";
+							});
+					}
+					
+					closeTicket.addEventListener("click", async event => {
+						let res = await fetch(
+							"http://localhost:3000/ticket/close/",
+							{
+								credentials: "include",
+								method: "PUT",
+								headers: {
+									"Accept": "application/json",
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({
+									ticketId,
+								}),
+							}
+						);
+						fetchContents();
+					});
+					
+					document.querySelector("#add").addEventListener("submit", async event => {
+						event.preventDefault();
+						const content = document.querySelector("#content");
+						let res = await fetch(
+							"http://localhost:3000/ticket/add/",
+							{
+								credentials: "include",
+								method: "POST",
+								headers: {
+									"Accept": "application/json",
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({
+									ticketId,
+									content: content.value,
+								}),
+							}
+						);
+						let json = await res.json();
+						if (json.result === "success") fetchContents();
+						else alert(json.message);
+						content.value = null;
+					});
+					
+					checkContents();
+					function checkContents() {
+						fetch(
+							"http://localhost:3000/poll/content/?ticketId=" + ticketId,
+							{
+								credentials: "include",
+								method: "GET",
+								headers: {
+									"Content-Type": "application/json",
+								},
+							}
+						)
+							.then(res => res.json())
+							.then(json => {
+								if (json.result === "success") fetchContents();
+								checkContents();
+							});
+					}
+					
+					window.dispatchEvent(new Event("show"));
+				}
+			}
+		</script>
+	</body>
+</html>

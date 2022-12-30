@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sanko.suppserver.ticket.TicketDao">
+	<insert id="createTicket" useGeneratedKeys="true" keyProperty="returner.id" keyColumn="id">
+		INSERT INTO tickets (title, created, userId) 
+		VALUES (#{title}, DATETIME("now"), #{userId})
+	</insert>
+	
+	<insert id="addContent">
+		INSERT INTO contents (created, ticketId, userId, content) 
+		VALUES (DATETIME("now"), #{ticketId}, #{userId}, #{content})
+	</insert>
+	
+	<select id="checkAccess" resultType="int">
+		SELECT id FROM tickets
+		WHERE id = #{ticketId}
+		AND (
+			userId = #{userId}
+			OR (SELECT 1 FROM users WHERE id = #{userId} AND support IS NOT NULL)
+		) LIMIT 1
+	</select>
+	
+	<select id="listTickets" resultType="hashmap">
+		SELECT tickets.id, tickets.title, tickets.created, tickets.closed, users.username, last.created AS lastTime, last.username AS lastUser FROM tickets
+		INNER JOIN users ON users.id = tickets.userId
+		LEFT JOIN (
+			SELECT MAX(created) AS created, ticketId, username FROM contents
+			INNER JOIN users ON users.id = contents.userId
+			GROUP BY ticketId
+		) AS last ON last.ticketId = tickets.id
+		WHERE tickets.userId = #{userId}
+		OR (SELECT 1 FROM users WHERE id = #{userId} AND support IS NOT NULL)
+		ORDER BY last.created DESC
+	</select>
+	
+	<select id="getInfo" resultType="hashmap">
+		SELECT title, closed FROM tickets WHERE id = #{ticketId} LIMIT 1
+	</select>
+	
+	<select id="listContents" resultType="hashmap">
+		SELECT contents.id, contents.created, users.username, users.support, contents.content FROM contents
+		INNER JOIN users ON users.id = contents.userId
+		WHERE contents.ticketId = #{ticketId}
+	</select>
+	
+	<insert id="openTicket">
+		UPDATE tickets SET closed = NULL WHERE id = #{ticketId}
+	</insert>
+	
+	<insert id="closeTicket">
+		UPDATE tickets SET closed = 1 WHERE id = #{ticketId}
+	</insert>
+</mapper>
